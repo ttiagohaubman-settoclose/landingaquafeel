@@ -719,11 +719,15 @@ footer p { font-size:11px; color:rgba(255,255,255,0.28); }
           <p style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:5px;">Nos comunicaremos a este número para confirmar tu cita.</p>
         </div>
         <div class="fg"><label>Correo electrónico</label><input type="email" id="email" placeholder="juan@correo.com"/></div>
-        <div class="fg" style="position:relative;">
-          <label>Dirección completa de la propiedad</label>
-          <input type="text" id="address" placeholder="Ej: 123 Main St, Greenville, SC 29601" autocomplete="off" oninput="onAddressInput(this)"/>
-          <div id="addr-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:#0D1E38;border:1px solid rgba(91,184,245,0.25);border-radius:0 0 8px 8px;z-index:50;max-height:180px;overflow-y:auto;"></div>
-          <p style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:5px;">Escribe tu dirección — selecciónala del menú para mayor precisión.</p>
+        <div class="fg">
+          <label>Dirección de la propiedad</label>
+          <input type="text" id="address" placeholder="123 Main St, Greenville, 29601, SC" autocomplete="off" oninput="validateAddress(this)" style="font-size:14px;"/>
+          <div id="addr-format-hint" style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.38);line-height:1.5;">
+            Formato: <span style="color:rgba(255,255,255,0.6);">Número + Calle, Ciudad, Zip Code, Estado</span>
+          </div>
+          <div id="addr-ok" style="display:none;margin-top:6px;font-size:12px;color:#4ade80;display:none;align-items:center;gap:5px;">
+            ✓ Dirección válida
+          </div>
         </div>
 
         <!-- CALENDAR -->
@@ -795,77 +799,48 @@ const counterObs = new IntersectionObserver(es => es.forEach(e => {
 }), {threshold: 0.5});
 document.querySelectorAll('.counter').forEach(c => counterObs.observe(c));
 
-// --- ADDRESS AUTOCOMPLETE ---
-// Uses Google Maps Places API pattern — works when deployed.
-// In preview (sandboxed iframe), external fetches are blocked, so we show
-// a manual confirmation note instead. On a real server, swap the fetch URL.
-let addrTimer;
-const US_STATES = ['SC','NC','VA','MD','GA','FL','TX','CA','NY','PA','OH','IL','MI','AZ','WA','CO','TN','MO','IN','WI','MN','AL','LA','KY','OR','OK','CT','UT','IA','NV','AR','MS','KS','NM','NE','WV','ID','HI','NH','ME','MT','RI','DE','SD','ND','AK','VT','WY'];
+// --- ADDRESS FORMAT VALIDATOR ---
+// Expected: Number + Street, City, ZipCode, State
+// e.g. "123 Main St, Greenville, 29601, SC"
+function validateAddress(el) {
+  const val = el.value.trim();
+  const hint = document.getElementById('addr-format-hint');
+  const ok = document.getElementById('addr-ok');
 
-function onAddressInput(el) {
-  clearTimeout(addrTimer);
-  const q = el.value.trim();
-  const box = document.getElementById('addr-suggestions');
-  if(q.length < 3){ box.style.display='none'; return; }
+  // Split by comma, expect at least 4 parts
+  const parts = val.split(',').map(s => s.trim()).filter(Boolean);
+  const hasStreet = parts[0] && /^\d+\s+.{2,}/.test(parts[0]); // starts with number + street name
+  const hasCity   = parts[1] && parts[1].length >= 2;
+  const hasZip    = parts[2] && /^\d{5}/.test(parts[2]);
+  const hasState  = parts[3] && /^[A-Za-z]{2}$/.test(parts[3]);
 
-  addrTimer = setTimeout(async () => {
-    // Try Nominatim first (works when served from a real domain)
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 2500);
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&limit=5&addressdetails=1&q=${encodeURIComponent(q)}`,
-        { headers:{'Accept-Language':'es-US,en'}, signal: controller.signal }
-      );
-      clearTimeout(timeout);
-      const data = await res.json();
-      if(data.length) { showSuggestions(data.map(i => i.display_name), el, box); return; }
-    } catch(e) { /* blocked in sandbox — fall through to local suggestions */ }
-
-    // Fallback: generate plausible completions from the typed text
-    showLocalFallback(q, el, box);
-  }, 350);
-}
-
-function showSuggestions(items, el, box) {
-  box.innerHTML = '';
-  items.forEach(text => {
-    const d = document.createElement('div');
-    d.className = 'addr-item';
-    d.textContent = text;
-    d.onclick = () => { el.value = text; box.style.display='none'; };
-    box.appendChild(d);
-  });
-  box.style.display = 'block';
-}
-
-function showLocalFallback(q, el, box) {
-  // Show a single "confirm your address" helper so the field still works
-  box.innerHTML = '';
-  const hint = document.createElement('div');
-  hint.className = 'addr-item addr-hint';
-  hint.innerHTML = `<span style="color:var(--water)">📍</span> Usar: <strong>${q}</strong>`;
-  hint.onclick = () => { el.value = q; box.style.display='none'; };
-  box.appendChild(hint);
-
-  // Also show state-completion hints if user typed a comma
-  if(q.includes(',')) {
-    const base = q.split(',')[0].trim();
-    US_STATES.slice(0,4).forEach(st => {
-      const d = document.createElement('div');
-      d.className = 'addr-item';
-      d.textContent = `${base}, ${st}`;
-      d.onclick = () => { el.value = `${base}, ${st}`; box.style.display='none'; };
-      box.appendChild(d);
-    });
+  if(val.length === 0) {
+    hint.style.display = 'block';
+    ok.style.display = 'none';
+    el.style.borderColor = 'rgba(255,255,255,0.09)';
+    return;
   }
-  box.style.display = 'block';
-}
 
-document.addEventListener('click', e => {
-  if(!e.target.closest('#address') && !e.target.closest('#addr-suggestions'))
-    document.getElementById('addr-suggestions').style.display='none';
-});
+  if(hasStreet && hasCity && hasZip && hasState) {
+    ok.style.display = 'flex';
+    hint.style.display = 'none';
+    el.style.borderColor = 'rgba(74,222,128,0.5)';
+  } else {
+    ok.style.display = 'none';
+    hint.style.display = 'block';
+
+    // Show which part is missing
+    let missing = '';
+    if(!hasStreet)     missing = 'Falta: número y calle (ej. 123 Main St)';
+    else if(!hasCity)  missing = 'Falta: ciudad';
+    else if(!hasZip)   missing = 'Falta: zip code (5 dígitos)';
+    else if(!hasState) missing = 'Falta: estado (ej. SC)';
+    else               missing = 'Formato: Número + Calle, Ciudad, Zip, Estado';
+
+    hint.innerHTML = `<span style="color:rgba(255,180,100,0.85)">⚠ ${missing}</span>`;
+    el.style.borderColor = parts.length >= 2 ? 'rgba(217,48,37,0.5)' : 'rgba(255,255,255,0.09)';
+  }
+}
 
 // --- PHONE FORMAT ---
 function fmtPhone(el) {
@@ -1027,6 +1002,11 @@ function submitForm() {
   if(rawPhone.length < 10){ showAlert('Por favor ingresa un número de teléfono válido (10 dígitos).'); return; }
   if(!email||!email.includes('@')||!email.includes('.')){ showAlert('Por favor ingresa un correo electrónico válido.'); return; }
   if(!address){ showAlert('Por favor ingresa la dirección completa de la propiedad.'); return; }
+  // Validate address format: Number Street, City, Zip, State
+  const addrParts = address.split(',').map(s => s.trim()).filter(Boolean);
+  if(addrParts.length < 4 || !/^\d+\s+.{2,}/.test(addrParts[0]) || !/^\d{5}/.test(addrParts[2]) || !/^[A-Za-z]{2}$/.test(addrParts[3])) {
+    showAlert('La dirección debe tener el formato: 123 Main St, Ciudad, 29601, SC'); return;
+  }
   if(!selectedDate){ showAlert('Por favor selecciona una fecha en el calendario.'); return; }
   if(!selectedSlot){ showAlert('Por favor selecciona un horario disponible.'); return; }
 

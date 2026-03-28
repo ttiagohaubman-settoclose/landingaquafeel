@@ -932,14 +932,42 @@ function toggleNone(el) {
   el.classList.toggle('on');
 }
 
-// --- CALENDAR ---
+// --- VALIDATION ALERT ---
+function showAlert(msg) {
+  let el = document.getElementById('form-alert');
+  if(!el) {
+    el = document.createElement('div');
+    el.id = 'form-alert';
+    el.style.cssText = 'background:rgba(217,48,37,0.12);border:1.5px solid rgba(217,48,37,0.6);border-radius:8px;padding:12px 16px;font-size:13px;color:#ff7b72;margin-bottom:14px;display:flex;align-items:center;gap:10px;';
+    const btn = document.querySelector('#s4 .btn-next');
+    btn.parentNode.insertBefore(el, btn);
+  }
+  el.innerHTML = `<span style="font-size:16px;flex-shrink:0">⚠️</span> ${msg}`;
+  el.style.display = 'flex';
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  setTimeout(() => { if(el) el.style.display='none'; }, 4000);
+}
+
+// --- CALENDAR: 5-day min offset, all 7 days open, 9AM–8PM ---
 let calYear, calMonth, selectedDate = null, selectedSlot = null;
 const today = new Date();
 calYear = today.getFullYear();
 calMonth = today.getMonth();
+
+const minDate = new Date(today);
+minDate.setDate(today.getDate() + 5);
+minDate.setHours(0,0,0,0);
+
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const SLOTS = ['8:00 AM','9:00 AM','10:00 AM','11:00 AM','1:00 PM','2:00 PM','3:00 PM','4:00 PM'];
-const TAKEN = [1,4];
+const SLOTS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM'];
+
+function getTaken(dateStr) {
+  let hash = 0;
+  for(let c of dateStr) hash = ((hash << 5) - hash) + c.charCodeAt(0);
+  const i1 = Math.abs(hash) % SLOTS.length;
+  const i2 = (i1 + 4) % SLOTS.length;
+  return [i1, i2];
+}
 
 function renderCal() {
   document.getElementById('cal-month-label').textContent = MONTHS_ES[calMonth] + ' ' + calYear;
@@ -952,62 +980,71 @@ function renderCal() {
   for(let i=0;i<first;i++){ const el=document.createElement('div'); el.className='cal-day empty'; grid.appendChild(el); }
   for(let d=1;d<=days;d++){
     const el=document.createElement('div');
-    const dt=new Date(calYear,calMonth,d);
-    const isToday=dt.toDateString()===today.toDateString();
-    const isPast=dt<new Date(today.getFullYear(),today.getMonth(),today.getDate());
-    const isSun=dt.getDay()===0;
+    const dt=new Date(calYear,calMonth,d); dt.setHours(0,0,0,0);
+    const tooSoon = dt < minDate;
+    const isPast = dt < new Date(today.getFullYear(),today.getMonth(),today.getDate());
     el.textContent=d;
-    if(isPast||isSun){ el.className='cal-day disabled'; }
-    else {
-      el.className='cal-day'+(isToday?' today':'');
+    if(isPast || tooSoon){
+      el.className='cal-day disabled';
+      if(tooSoon && !isPast) el.title='Disponible con 5 días de anticipación';
+    } else {
+      el.className='cal-day';
       const dateStr=calYear+'-'+(calMonth+1)+'-'+d;
+      if(dt.toDateString()===today.toDateString()) el.classList.add('today');
       if(selectedDate===dateStr) el.classList.add('selected');
       el.onclick=()=>selectDate(dateStr,el);
     }
     grid.appendChild(el);
   }
 }
+
 function selectDate(ds,el) {
   selectedDate=ds; selectedSlot=null;
   document.querySelectorAll('.cal-day').forEach(d=>d.classList.remove('selected'));
   el.classList.add('selected');
   renderSlots();
 }
+
 function renderSlots() {
   const wrap=document.getElementById('time-slots');
   const grid=document.getElementById('slots-grid');
   wrap.style.display='block'; grid.innerHTML='';
+  const taken=getTaken(selectedDate);
   SLOTS.forEach((s,i)=>{
     const el=document.createElement('div');
-    el.textContent=s; el.className='slot'+(TAKEN.includes(i)?' taken':'');
-    if(!TAKEN.includes(i)) el.onclick=()=>{ selectedSlot=s; document.querySelectorAll('.slot').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); };
+    el.textContent=s; el.className='slot'+(taken.includes(i)?' taken':'');
+    if(!taken.includes(i)) el.onclick=()=>{ selectedSlot=s; document.querySelectorAll('.slot').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); };
     grid.appendChild(el);
   });
 }
+
 function changeMonth(d) {
   calMonth+=d;
   if(calMonth>11){calMonth=0;calYear++;}
   if(calMonth<0){calMonth=11;calYear--;}
-  if(calYear<today.getFullYear()||(calYear===today.getFullYear()&&calMonth<today.getMonth())){calMonth=today.getMonth();calYear=today.getFullYear();}
+  const firstOfMonth=new Date(calYear,calMonth,1);
+  const firstAllowed=new Date(minDate.getFullYear(),minDate.getMonth(),1);
+  if(firstOfMonth<firstAllowed){calMonth=minDate.getMonth();calYear=minDate.getFullYear();}
   renderCal();
 }
 
 // --- SUBMIT ---
 function submitForm() {
   const fname=document.getElementById('fname').value.trim();
-  const phone=document.getElementById('phone').value.trim();
+  const lname=document.getElementById('lname').value.trim();
+  const rawPhone=document.getElementById('phone').value.replace(/\D/g,'');
   const email=document.getElementById('email').value.trim();
   const address=document.getElementById('address').value.trim();
-  if(!fname||!phone||!email||!address){alert('Por favor completa todos los campos.');return;}
-  if(!selectedDate){alert('Por favor selecciona una fecha para la inspección.');return;}
-  if(!selectedSlot){alert('Por favor selecciona un horario.');return;}
+
+  if(!fname||!lname){ showAlert('Por favor ingresa tu nombre y apellido.'); return; }
+  if(rawPhone.length < 10){ showAlert('Por favor ingresa un número de teléfono válido (10 dígitos).'); return; }
+  if(!email||!email.includes('@')||!email.includes('.')){ showAlert('Por favor ingresa un correo electrónico válido.'); return; }
+  if(!address){ showAlert('Por favor ingresa la dirección completa de la propiedad.'); return; }
+  if(!selectedDate){ showAlert('Por favor selecciona una fecha en el calendario.'); return; }
+  if(!selectedSlot){ showAlert('Por favor selecciona un horario disponible.'); return; }
 
   const params=new URLSearchParams({name:fname,date:selectedDate,slot:selectedSlot});
-  // Try redirect to external thank-you page
-  try {
-    window.location.href='gracias.html?'+params.toString();
-  } catch(e) {}
-  // Fallback: show inline confirmation (works in Claude preview / sandboxed envs)
+  try { window.location.href='gracias.html?'+params.toString(); } catch(e){}
   setTimeout(() => {
     if(document.getElementById('s4').classList.contains('active')) {
       showInlineThanks(fname, selectedDate, selectedSlot);

@@ -955,8 +955,12 @@ calYear = today.getFullYear();
 calMonth = today.getMonth();
 
 const minDate = new Date(today);
-minDate.setDate(today.getDate() + 5);
 minDate.setHours(0,0,0,0);
+
+// Max date = today + 4 (so 5 days total: today, +1, +2, +3, +4)
+const maxDate = new Date(today);
+maxDate.setDate(today.getDate() + 4);
+maxDate.setHours(23,59,59,999);
 
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const SLOTS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM'];
@@ -981,12 +985,11 @@ function renderCal() {
   for(let d=1;d<=days;d++){
     const el=document.createElement('div');
     const dt=new Date(calYear,calMonth,d); dt.setHours(0,0,0,0);
-    const tooSoon = dt < minDate;
-    const isPast = dt < new Date(today.getFullYear(),today.getMonth(),today.getDate());
+    const isPast = dt < minDate;
+    const isFuture = dt > maxDate;
     el.textContent=d;
-    if(isPast || tooSoon){
+    if(isPast || isFuture){
       el.className='cal-day disabled';
-      if(tooSoon && !isPast) el.title='Disponible con 5 días de anticipación';
     } else {
       el.className='cal-day';
       const dateStr=calYear+'-'+(calMonth+1)+'-'+d;
@@ -1022,9 +1025,12 @@ function changeMonth(d) {
   calMonth+=d;
   if(calMonth>11){calMonth=0;calYear++;}
   if(calMonth<0){calMonth=11;calYear--;}
-  const firstOfMonth=new Date(calYear,calMonth,1);
-  const firstAllowed=new Date(minDate.getFullYear(),minDate.getMonth(),1);
-  if(firstOfMonth<firstAllowed){calMonth=minDate.getMonth();calYear=minDate.getFullYear();}
+  // Don't go before current month or after the month containing maxDate
+  const cur = new Date(calYear,calMonth,1);
+  const minMonth = new Date(today.getFullYear(),today.getMonth(),1);
+  const maxMonth = new Date(maxDate.getFullYear(),maxDate.getMonth(),1);
+  if(cur < minMonth){calMonth=today.getMonth();calYear=today.getFullYear();}
+  if(cur > maxMonth){calMonth=maxDate.getMonth();calYear=maxDate.getFullYear();}
   renderCal();
 }
 

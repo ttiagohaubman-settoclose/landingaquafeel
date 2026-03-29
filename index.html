@@ -991,10 +991,8 @@ function changeMonth(d) {
 }
 
 // --- SUBMIT ---
-// --- GHL CONFIG ---
-const GHL_API_KEY     = 'pit-ca2b9b07-d237-4262-999a-c1ef3e90fa56';
-const GHL_LOCATION_ID = 'EiZQnibRq2k2C21iyxmd';
-const GHL_CALENDARS   = {
+// --- GHL via Vercel Function (API key stays server-side) ---
+const GHL_CALENDARS = {
   SC: 'Cbn1dBt36MFjunNKpMMJ',
   NC: 'DBelueY6yDL7ZRSEN72i',
   VA: '9hAPlJXoqofSUZMVjSrZ',
@@ -1017,58 +1015,14 @@ function buildSlotISO(dateStr, slotStr) {
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
-async function ghlPost(endpoint, body) {
-  const res = await fetch('https://services.leadconnectorhq.com' + endpoint, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${GHL_API_KEY}`,
-      'Content-Type': 'application/json',
-      'Version': '2021-07-28'
-    },
-    body: JSON.stringify(body)
-  });
-  return res.json();
-}
-
 async function sendToGHL(data) {
-  const state      = detectState(data.address);
-  const calendarId = GHL_CALENDARS[state];
-  const { start, end } = buildSlotISO(data.date, data.slot);
-
-  // 1 — Create contact
-  const contactRes = await ghlPost('/contacts/', {
-    locationId:   GHL_LOCATION_ID,
-    firstName:    data.fname,
-    lastName:     data.lname,
-    phone:        '+1' + data.phone,
-    email:        data.email,
-    address1:     data.address,
-    source:       'Landing Page Aquafeel',
-    tags:         [state, 'Landing Aquafeel', 'Inspeccion Solicitada'],
-    customFields: [
-      { key: 'homeowner',  field_value: 'Yes'            },
-      { key: 'language',   field_value: 'Spanish'        },
-      { key: 'water_type', field_value: data.waterType   },
-      { key: 'symptoms',   field_value: data.symptoms    }
-    ]
+  const res = await fetch('/api/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
   });
-
-  const contactId = contactRes?.contact?.id;
-
-  // 2 — Create appointment in the right state calendar
-  if(contactId && calendarId) {
-    await ghlPost('/calendars/events/appointments', {
-      calendarId:        calendarId,
-      locationId:        GHL_LOCATION_ID,
-      contactId:         contactId,
-      startTime:         start,
-      endTime:           end,
-      title:             `Inspeccion Aquafeel — ${data.fname} ${data.lname}`,
-      appointmentStatus: 'new',
-      address:           data.address,
-      notes:             `Estado: ${state} | Agua: ${data.waterType} | Sintomas: ${data.symptoms}`
-    });
-  }
+  if(!res.ok) throw new Error('API error: ' + res.status);
+  return res.json();
 }
 
 async function submitForm() {
@@ -1114,7 +1068,8 @@ async function submitForm() {
       symptoms
     });
   } catch(e) {
-    console.error('GHL error:', e);
+    console.error('Submit error:', e);
+    // Don't block redirect if API fails
   }
 
   const params = new URLSearchParams({ name: fname, date: selectedDate, slot: selectedSlot });

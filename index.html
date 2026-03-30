@@ -731,15 +731,10 @@ fbq('track', 'PageView');
           <p style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:5px;">Nos comunicaremos a este número para confirmar tu cita.</p>
         </div>
         <div class="fg"><label>Correo electrónico</label><input type="email" id="email" placeholder="juan@correo.com"/></div>
-        <div class="fg">
+        <div class="fg" style="position:relative;">
           <label>Dirección de la propiedad</label>
-          <input type="text" id="address" placeholder="123 Main St, Greenville, 29601, SC" autocomplete="off" oninput="validateAddress(this)" style="font-size:14px;"/>
-          <div id="addr-format-hint" style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.38);line-height:1.5;">
-            Formato: <span style="color:rgba(255,255,255,0.6);">Número + Calle, Ciudad, Zip Code, Estado</span>
-          </div>
-          <div id="addr-ok" style="display:none;margin-top:6px;font-size:12px;color:#4ade80;display:none;align-items:center;gap:5px;">
-            ✓ Dirección válida
-          </div>
+          <input type="text" id="address" placeholder="Empieza a escribir tu dirección..." autocomplete="off" style="font-size:14px;"/>
+          <div id="addr-ok" style="display:none;margin-top:6px;font-size:12px;color:#4ade80;align-items:center;gap:5px;">✓ Dirección seleccionada</div>
         </div>
 
         <!-- CALENDAR -->
@@ -814,45 +809,6 @@ document.querySelectorAll('.counter').forEach(c => counterObs.observe(c));
 // --- ADDRESS FORMAT VALIDATOR ---
 // Expected: Number + Street, City, ZipCode, State
 // e.g. "123 Main St, Greenville, 29601, SC"
-function validateAddress(el) {
-  const val = el.value.trim();
-  const hint = document.getElementById('addr-format-hint');
-  const ok = document.getElementById('addr-ok');
-
-  // Split by comma, expect at least 4 parts
-  const parts = val.split(',').map(s => s.trim()).filter(Boolean);
-  const hasStreet = parts[0] && /^\d+\s+.{2,}/.test(parts[0]); // starts with number + street name
-  const hasCity   = parts[1] && parts[1].length >= 2;
-  const hasZip    = parts[2] && /^\d{5}/.test(parts[2]);
-  const hasState  = parts[3] && /^[A-Za-z]{2}$/.test(parts[3]);
-
-  if(val.length === 0) {
-    hint.style.display = 'block';
-    ok.style.display = 'none';
-    el.style.borderColor = 'rgba(255,255,255,0.09)';
-    return;
-  }
-
-  if(hasStreet && hasCity && hasZip && hasState) {
-    ok.style.display = 'flex';
-    hint.style.display = 'none';
-    el.style.borderColor = 'rgba(74,222,128,0.5)';
-  } else {
-    ok.style.display = 'none';
-    hint.style.display = 'block';
-
-    // Show which part is missing
-    let missing = '';
-    if(!hasStreet)     missing = 'Falta: número y calle (ej. 123 Main St)';
-    else if(!hasCity)  missing = 'Falta: ciudad';
-    else if(!hasZip)   missing = 'Falta: zip code (5 dígitos)';
-    else if(!hasState) missing = 'Falta: estado (ej. SC)';
-    else               missing = 'Formato: Número + Calle, Ciudad, Zip, Estado';
-
-    hint.innerHTML = `<span style="color:rgba(255,180,100,0.85)">⚠ ${missing}</span>`;
-    el.style.borderColor = parts.length >= 2 ? 'rgba(217,48,37,0.5)' : 'rgba(255,255,255,0.09)';
-  }
-}
 
 // --- PHONE FORMAT ---
 function fmtPhone(el) {
@@ -1079,9 +1035,7 @@ async function submitForm() {
   if(!email||!email.includes('@')||!email.includes('.')){ showAlert('Por favor ingresa un correo electrónico válido.'); return; }
   if(!address){ showAlert('Por favor ingresa la dirección completa de la propiedad.'); return; }
   const addrParts = address.split(',').map(s => s.trim()).filter(Boolean);
-  if(addrParts.length < 4 || !/^\d+\s+.{2,}/.test(addrParts[0]) || !/^\d{5}/.test(addrParts[2]) || !/^[A-Za-z]{2}$/.test(addrParts[3])) {
-    showAlert('La dirección debe tener el formato: 123 Main St, Ciudad, 29601, SC'); return;
-  }
+  if(addrParts.length < 3){ showAlert('Por favor selecciona una dirección de la lista de sugerencias.'); return; }
   if(!selectedDate){ showAlert('Por favor selecciona una fecha en el calendario.'); return; }
   if(!selectedSlot){ showAlert('Por favor selecciona un horario disponible.'); return; }
 
@@ -1158,5 +1112,74 @@ function showInlineThanks(name, date, slot) {
 
 renderCal();
 </script>
+<!-- Google Places Autocomplete -->
+<script>
+function initAutocomplete() {
+  const input = document.getElementById('address');
+  if(!input) return;
+
+  const autocomplete = new google.maps.places.Autocomplete(input, {
+    componentRestrictions: { country: 'us' },
+    fields: ['formatted_address', 'address_components'],
+    types: ['address']
+  });
+
+  // Style the dropdown to match the dark theme
+  const style = document.createElement('style');
+  style.textContent = `
+    .pac-container {
+      background:#0D1E38 !important;
+      border:1px solid rgba(91,184,245,0.25) !important;
+      border-radius:8px !important;
+      margin-top:4px !important;
+      font-family:'DM Sans',sans-serif !important;
+      box-shadow:0 8px 32px rgba(0,0,0,0.4) !important;
+      z-index:9999 !important;
+    }
+    .pac-item {
+      background:#0D1E38 !important;
+      color:rgba(255,255,255,0.85) !important;
+      border-top:1px solid rgba(255,255,255,0.06) !important;
+      padding:10px 14px !important;
+      font-size:13px !important;
+      cursor:pointer !important;
+    }
+    .pac-item:hover, .pac-item-selected {
+      background:rgba(91,184,245,0.12) !important;
+    }
+    .pac-item-query {
+      color:#5BB8F5 !important;
+      font-size:13px !important;
+    }
+    .pac-icon { display:none !important; }
+    .pac-logo { display:none !important; }
+  `;
+  document.head.appendChild(style);
+
+  autocomplete.addListener('place_changed', () => {
+    const place = autocomplete.getPlace();
+    if(!place.address_components) return;
+
+    // Build formatted address: "123 Main St, City, ZIP, STATE"
+    let streetNumber = '', route = '', city = '', zip = '', state = '';
+    place.address_components.forEach(c => {
+      if(c.types.includes('street_number'))               streetNumber = c.long_name;
+      if(c.types.includes('route'))                       route        = c.long_name;
+      if(c.types.includes('locality'))                    city         = c.long_name;
+      if(c.types.includes('postal_code'))                 zip          = c.long_name;
+      if(c.types.includes('administrative_area_level_1')) state        = c.short_name;
+    });
+
+    const formatted = `${streetNumber} ${route}, ${city}, ${zip}, ${state}`.trim();
+    input.value = formatted;
+
+    // Show success indicator
+    const ok = document.getElementById('addr-ok');
+    if(ok) { ok.style.display = 'flex'; }
+    input.style.borderColor = 'rgba(74,222,128,0.5)';
+  });
+}
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC3vt0sB2ZnclwkImWnEI6LJDN_C5R5axk&libraries=places&callback=initAutocomplete" async defer></script>
 </body>
 </html>

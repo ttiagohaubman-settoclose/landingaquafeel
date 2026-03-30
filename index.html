@@ -1112,72 +1112,100 @@ function showInlineThanks(name, date, slot) {
 
 renderCal();
 </script>
-<!-- Google Places Autocomplete -->
+<!-- Google Places Autocomplete (PlaceAutocompleteElement) -->
 <script>
 async function initAutocomplete() {
   try {
-    const { Autocomplete } = await google.maps.importLibrary("places");
-    const input = document.getElementById('address');
-    if(!input) return;
+    await google.maps.importLibrary("places");
 
-    const autocomplete = new Autocomplete(input, {
+    const input = document.getElementById('address');
+    if (!input) return;
+
+    // Create PlaceAutocompleteElement
+    const pac = new google.maps.places.PlaceAutocompleteElement({
       componentRestrictions: { country: 'us' },
-      fields: ['address_components', 'formatted_address'],
       types: ['address']
     });
 
+    // Style to match the landing
+    pac.style.cssText = 'width:100%;display:block;';
+
+    // Insert after the input and hide original input
+    input.parentNode.insertBefore(pac, input.nextSibling);
+    input.style.display = 'none';
+
+    // Inject dark theme styles
     const style = document.createElement('style');
     style.textContent = `
+      gmp-place-autocomplete input {
+        background: rgba(255,255,255,0.06) !important;
+        border: 1px solid rgba(255,255,255,0.09) !important;
+        border-radius: 8px !important;
+        color: white !important;
+        font-family: 'DM Sans', sans-serif !important;
+        font-size: 14px !important;
+        padding: 12px 14px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        outline: none !important;
+      }
+      gmp-place-autocomplete input::placeholder { color: rgba(255,255,255,0.3) !important; }
+      gmp-place-autocomplete input:focus { border-color: rgba(91,184,245,0.5) !important; }
       .pac-container {
-        background:#0D1E38 !important;
-        border:1px solid rgba(91,184,245,0.25) !important;
-        border-radius:8px !important;
-        margin-top:4px !important;
-        font-family:'DM Sans',sans-serif !important;
-        box-shadow:0 8px 32px rgba(0,0,0,0.4) !important;
-        z-index:9999 !important;
+        background: #0D1E38 !important;
+        border: 1px solid rgba(91,184,245,0.25) !important;
+        border-radius: 8px !important;
+        margin-top: 4px !important;
+        font-family: 'DM Sans', sans-serif !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4) !important;
+        z-index: 9999 !important;
       }
       .pac-item {
-        background:#0D1E38 !important;
-        color:rgba(255,255,255,0.85) !important;
-        border-top:1px solid rgba(255,255,255,0.06) !important;
-        padding:10px 14px !important;
-        font-size:13px !important;
-        cursor:pointer !important;
+        background: #0D1E38 !important;
+        color: rgba(255,255,255,0.85) !important;
+        border-top: 1px solid rgba(255,255,255,0.06) !important;
+        padding: 10px 14px !important;
+        font-size: 13px !important;
+        cursor: pointer !important;
       }
-      .pac-item:hover { background:rgba(91,184,245,0.12) !important; }
-      .pac-item-query { color:#5BB8F5 !important; }
-      .pac-icon, .pac-logo { display:none !important; }
+      .pac-item:hover { background: rgba(91,184,245,0.12) !important; }
+      .pac-item-query { color: #5BB8F5 !important; }
+      .pac-icon, .pac-logo { display: none !important; }
     `;
     document.head.appendChild(style);
 
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if(!place.address_components) return;
+    // Listen for place selection
+    pac.addEventListener('gmp-select', async (event) => {
+      const place = event.placePrediction.toPlace();
+      await place.fetchFields({ fields: ['addressComponents', 'formattedAddress'] });
 
       let streetNumber = '', route = '', city = '', zip = '', state = '';
-      place.address_components.forEach(c => {
-        if(c.types.includes('street_number'))               streetNumber = c.long_name;
-        if(c.types.includes('route'))                       route        = c.long_name;
-        if(c.types.includes('locality'))                    city         = c.long_name;
-        if(c.types.includes('postal_code'))                 zip          = c.long_name;
-        if(c.types.includes('administrative_area_level_1')) state        = c.short_name;
-      });
+      for (const component of place.addressComponents) {
+        if (component.types.includes('street_number'))               streetNumber = component.longText;
+        if (component.types.includes('route'))                       route        = component.longText;
+        if (component.types.includes('locality'))                    city         = component.longText;
+        if (component.types.includes('postal_code'))                 zip          = component.longText;
+        if (component.types.includes('administrative_area_level_1')) state        = component.shortText;
+      }
 
       const formatted = `${streetNumber} ${route}, ${city}, ${zip}, ${state}`.trim();
       input.value = formatted;
-
-      // Save state globally for calendar availability
       detectedState = state;
-      console.log('Estado detectado:', detectedState);
+
+      console.log('Dirección:', formatted, '| Estado:', state);
 
       const ok = document.getElementById('addr-ok');
-      if(ok) ok.style.display = 'flex';
-      input.style.borderColor = 'rgba(74,222,128,0.5)';
+      if (ok) ok.style.display = 'flex';
     });
 
-  } catch(err) {
-    console.error('Places error:', err);
+  } catch (err) {
+    console.error('Places init error:', err);
+    // Fallback to plain input
+    const input = document.getElementById('address');
+    if (input) {
+      input.style.display = 'block';
+      input.placeholder = '123 Main St, Greenville, 29601, SC';
+    }
   }
 }
 </script>

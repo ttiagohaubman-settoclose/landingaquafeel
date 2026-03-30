@@ -84,7 +84,8 @@ export default async function handler(req, res) {
       ]
     });
 
-    const contactId = contactRes?.contact?.id;
+    console.log('Contact response:', JSON.stringify(contactRes));
+    const contactId = contactRes?.contact?.id || contactRes?.id;
 
     // 2 — Create appointment in the correct state calendar
     if (contactId && calendarId) {

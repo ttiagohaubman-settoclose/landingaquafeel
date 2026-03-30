@@ -8,13 +8,15 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body;
+    console.log('GHL Webhook payload:', JSON.stringify(body));
 
-    // GHL sends appointment data when status changes
-    // We only fire Schedule when status = 'confirmed'
-    const status = body?.appointmentStatus || body?.status || '';
-    if (status.toLowerCase() !== 'confirmed') {
-      return res.status(200).json({ skipped: true, reason: 'Not confirmed' });
-    }
+    // Log the status fields to debug
+    const status = body?.appointmentStatus || body?.status || body?.type || '';
+    console.log('Status received:', status);
+    // TODO: restore status filter after confirming field name
+    // if (status.toLowerCase() !== 'confirmed') {
+    //   return res.status(200).json({ skipped: true, reason: 'Not confirmed' });
+    // }
 
     // Extract contact info for CAPI matching
     const contact = body?.contact || {};

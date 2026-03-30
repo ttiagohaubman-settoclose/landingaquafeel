@@ -37,11 +37,15 @@ export default async function handler(req, res) {
     const [y, m, d] = dateStr.split('-').map(Number);
     const [time, mer] = slotStr.split(' ');
     let [h, min] = time.split(':').map(Number);
-    if (mer === 'PM' && h !== 12) h += 12;
-    if (mer === 'AM' && h === 12) h = 0;
-    const start = new Date(y, m - 1, d, h, min, 0);
-    const end   = new Date(y, m - 1, d, h + 1, min, 0);
-    return { start: start.toISOString(), end: end.toISOString() };
+    if(mer === 'PM' && h !== 12) h += 12;
+    if(mer === 'AM' && h === 12) h = 0;
+    // Convert Eastern time (EDT = UTC-4) to UTC for GHL
+    const startUTC = new Date(Date.UTC(y, m - 1, d, h + 4, min, 0));
+    const endUTC   = new Date(Date.UTC(y, m - 1, d, h + 5, min, 0));
+    return {
+      start: startUTC.toISOString(),
+      end:   endUTC.toISOString()
+    };
   }
 
   async function ghlPost(endpoint, body) {
@@ -84,7 +88,7 @@ export default async function handler(req, res) {
 
     // 2 — Create appointment in the correct state calendar
     if (contactId && calendarId) {
-      await ghlPost('/calendars/events/appointments', {
+      const apptBody = {
         calendarId:        calendarId,
         locationId:        GHL_LOCATION_ID,
         contactId:         contactId,
@@ -94,7 +98,9 @@ export default async function handler(req, res) {
         appointmentStatus: 'new',
         address:           address,
         notes:             `Estado: ${state} | Agua: ${waterType} | Sintomas: ${symptoms}`
-      });
+      };
+      const apptRes = await ghlPost('/calendars/events/appointments', apptBody);
+      console.log('Appointment response:', JSON.stringify(apptRes));
     }
 
     return res.status(200).json({ success: true, contactId, state });

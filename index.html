@@ -305,7 +305,7 @@ h2 em { font-style:italic; color:var(--water); }
 .cal-day.empty { cursor:default; }
 .time-slots { margin-top:14px; }
 .time-slots-title { font-size:11px; font-weight:600; letter-spacing:.8px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:10px; }
-.slots-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+.slots-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; max-height:280px; overflow-y:auto; }
 .slot {
   text-align:center; padding:9px 6px; border-radius:7px; font-size:12px; cursor:pointer;
   border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.7); transition:all .15s;
@@ -919,14 +919,64 @@ maxDate.setDate(today.getDate() + 4);
 maxDate.setHours(23,59,59,999);
 
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const SLOTS = ['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM'];
+const SLOTS = [
+  '9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM',
+  '12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM',
+  '3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM',
+  '6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM'
+];
 
-function getTaken(dateStr) {
-  let hash = 0;
-  for(let c of dateStr) hash = ((hash << 5) - hash) + c.charCodeAt(0);
-  const i1 = Math.abs(hash) % SLOTS.length;
-  const i2 = (i1 + 4) % SLOTS.length;
-  return [i1, i2];
+async function fetchAvailability(dateStr, address) {
+  const parts = address.split(',').map(s => s.trim());
+  const state = parts[parts.length - 1].toUpperCase();
+  try {
+    const res = await fetch(`/api/availability?date=${dateStr}&state=${state}`);
+    const data = await res.json();
+    return data.booked || [];
+  } catch(e) {
+    return []; // fail open — show all slots
+  }
+}
+
+async function renderSlots(booked = []) {
+  const wrap = document.getElementById('time-slots');
+  const grid = document.getElementById('slots-grid');
+  wrap.style.display = 'block';
+  grid.innerHTML = '';
+
+  // Show loading state briefly
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;font-size:13px;color:rgba(255,255,255,0.4);padding:12px;">Verificando disponibilidad...</div>';
+
+  SLOTS.forEach((s, i) => {
+    const el = document.createElement('div');
+    el.textContent = s;
+    const isTaken = booked.includes(s);
+    el.className = 'slot' + (isTaken ? ' taken' : '');
+    if (!isTaken) {
+      el.onclick = () => {
+        selectedSlot = s;
+        document.querySelectorAll('.slot').forEach(x => x.classList.remove('selected'));
+        el.classList.add('selected');
+      };
+    }
+    grid.appendChild(el);
+  });
+}
+
+async function selectDate(ds, el) {
+  selectedDate = ds; selectedSlot = null;
+  document.querySelectorAll('.cal-day').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+
+  // Show loading
+  const wrap = document.getElementById('time-slots');
+  const grid = document.getElementById('slots-grid');
+  wrap.style.display = 'block';
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;font-size:13px;color:rgba(255,255,255,0.4);padding:14px;">Cargando horarios...</div>';
+
+  const address = document.getElementById('address')?.value || '';
+  const booked = await fetchAvailability(ds, address);
+  await renderSlots(booked);
 }
 
 function renderCal() {
@@ -955,26 +1005,6 @@ function renderCal() {
     }
     grid.appendChild(el);
   }
-}
-
-function selectDate(ds,el) {
-  selectedDate=ds; selectedSlot=null;
-  document.querySelectorAll('.cal-day').forEach(d=>d.classList.remove('selected'));
-  el.classList.add('selected');
-  renderSlots();
-}
-
-function renderSlots() {
-  const wrap=document.getElementById('time-slots');
-  const grid=document.getElementById('slots-grid');
-  wrap.style.display='block'; grid.innerHTML='';
-  const taken=getTaken(selectedDate);
-  SLOTS.forEach((s,i)=>{
-    const el=document.createElement('div');
-    el.textContent=s; el.className='slot'+(taken.includes(i)?' taken':'');
-    if(!taken.includes(i)) el.onclick=()=>{ selectedSlot=s; document.querySelectorAll('.slot').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); };
-    grid.appendChild(el);
-  });
 }
 
 function changeMonth(d) {

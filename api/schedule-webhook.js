@@ -8,15 +8,14 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body;
-    console.log('GHL Webhook payload:', JSON.stringify(body));
 
-    // Log the status fields to debug
-    const status = body?.appointmentStatus || body?.status || body?.type || '';
+    // GHL has a typo: "appoinmentStatus" (missing 't') inside calendar object
+    const status = body?.calendar?.appoinmentStatus || body?.appointmentStatus || body?.status || '';
     console.log('Status received:', status);
-    // TODO: restore status filter after confirming field name
-    // if (status.toLowerCase() !== 'confirmed') {
-    //   return res.status(200).json({ skipped: true, reason: 'Not confirmed' });
-    // }
+
+    if (status.toLowerCase() !== 'confirmed') {
+      return res.status(200).json({ skipped: true, reason: `Not confirmed: ${status}` });
+    }
 
     // Extract contact info for CAPI matching
     const contact = body?.contact || {};

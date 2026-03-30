@@ -15,7 +15,9 @@ export default async function handler(req, res) {
     SC: 'Cbn1dBt36MFjunNKpMMJ',
     NC: 'DBelueY6yDL7ZRSEN72i',
     VA: '9hAPlJXoqofSUZMVjSrZ',
-    MD: 'BkkPtJ3mVP7YirEdSzHx'
+    MD: 'BkkPtJ3mVP7YirEdSzHx',
+    GA: '7rEByl9HqfNfGupSdUrF',
+    DC: '7ajE5140GQAQm93howtw'
   };
 
   const calendarId = GHL_CALENDARS[state?.toUpperCase()];

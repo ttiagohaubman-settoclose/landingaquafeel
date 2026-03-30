@@ -1112,49 +1112,22 @@ function showInlineThanks(name, date, slot) {
 
 renderCal();
 </script>
-<!-- Google Places Autocomplete (New API) -->
-<script type="module">
-  import { PlaceAutocompleteElement } from 'https://maps.googleapis.com/maps/api/js?key=AIzaSyC3vt0sB2ZnclwkImWnEI6LJDN_C5R5axk&libraries=places&v=weekly';
-</script>
+<!-- Google Places Autocomplete -->
 <script>
 async function initAutocomplete() {
   try {
-    await google.maps.importLibrary("places");
-
+    const { Autocomplete } = await google.maps.importLibrary("places");
     const input = document.getElementById('address');
     if(!input) return;
 
-    // Create the new PlaceAutocompleteElement
-    const placeAutocomplete = new google.maps.places.PlaceAutocompleteElement({
+    const autocomplete = new Autocomplete(input, {
       componentRestrictions: { country: 'us' },
+      fields: ['address_components', 'formatted_address'],
       types: ['address']
     });
 
-    // Style it to match our input
-    placeAutocomplete.style.cssText = `
-      width: 100%;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-    `;
-
-    // Replace our input with the autocomplete element
-    const wrapper = input.parentElement;
-    input.style.display = 'none';
-    wrapper.insertBefore(placeAutocomplete, input.nextSibling);
-
-    // Style the pac-container dropdown
     const style = document.createElement('style');
     style.textContent = `
-      gmp-place-autocomplete {
-        width: 100%;
-        --gmp-input-border-radius: 8px;
-        --gmp-input-background: rgba(255,255,255,0.06);
-        --gmp-input-border: 1px solid rgba(255,255,255,0.09);
-        --gmp-input-color: white;
-        --gmp-input-font-family: 'DM Sans', sans-serif;
-        --gmp-input-font-size: 14px;
-        --gmp-input-padding: 12px 14px;
-      }
       .pac-container {
         background:#0D1E38 !important;
         border:1px solid rgba(91,184,245,0.25) !important;
@@ -1178,26 +1151,25 @@ async function initAutocomplete() {
     `;
     document.head.appendChild(style);
 
-    placeAutocomplete.addEventListener('gmp-placeselect', async (e) => {
-      const place = e.place;
-      await place.fetchFields({ fields: ['addressComponents', 'formattedAddress'] });
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if(!place.address_components) return;
 
       let streetNumber = '', route = '', city = '', zip = '', state = '';
-      place.addressComponents.forEach(c => {
-        if(c.types.includes('street_number'))               streetNumber = c.longText;
-        if(c.types.includes('route'))                       route        = c.longText;
-        if(c.types.includes('locality'))                    city         = c.longText;
-        if(c.types.includes('postal_code'))                 zip          = c.longText;
-        if(c.types.includes('administrative_area_level_1')) state        = c.shortText;
+      place.address_components.forEach(c => {
+        if(c.types.includes('street_number'))               streetNumber = c.long_name;
+        if(c.types.includes('route'))                       route        = c.long_name;
+        if(c.types.includes('locality'))                    city         = c.long_name;
+        if(c.types.includes('postal_code'))                 zip          = c.long_name;
+        if(c.types.includes('administrative_area_level_1')) state        = c.short_name;
       });
 
       const formatted = `${streetNumber} ${route}, ${city}, ${zip}, ${state}`.trim();
-      // Set detected state globally for calendar availability
-      detectedState = state;
-      // Set the hidden input value for form submission
       input.value = formatted;
-      input.style.display = 'block';
-      placeAutocomplete.style.display = 'none';
+
+      // Save state globally for calendar availability
+      detectedState = state;
+      console.log('Estado detectado:', detectedState);
 
       const ok = document.getElementById('addr-ok');
       if(ok) ok.style.display = 'flex';
@@ -1206,12 +1178,6 @@ async function initAutocomplete() {
 
   } catch(err) {
     console.error('Places error:', err);
-    // Fallback — just show the regular input
-    const input = document.getElementById('address');
-    if(input) {
-      input.style.display = 'block';
-      input.placeholder = '123 Main St, Greenville, 29601, SC';
-    }
   }
 }
 </script>

@@ -454,6 +454,18 @@ footer p { font-size:11px; color:rgba(255,255,255,0.28); }
   .slots-grid { grid-template-columns:repeat(2,1fr); }
 }
 </style>
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '2712586292441607');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=2712586292441607&ev=PageView&noscript=1"/></noscript>
+<!-- End Meta Pixel -->
 </head>
 <body>
 
@@ -652,8 +664,8 @@ footer p { font-size:11px; color:rgba(255,255,255,0.28); }
         <div class="step-label">Paso 1 de 4</div>
         <div class="step-q">¿Eres el/la <span>dueño/a de la propiedad</span> donde se realizará la inspección?</div>
         <div class="opts">
-          <button class="opt-btn" onclick="selectOwner(true)"><span class="opt-icon">🏠</span><div><div class="opt-main">Sí, soy dueño/a de la propiedad</div></div></button>
-          <button class="opt-btn" onclick="selectOwner(false)"><span class="opt-icon">🔑</span><div><div class="opt-main">No, soy inquilino/a</div></div></button>
+          <button class="opt-btn" onclick="fbq('trackCustom','StartQuiz',{answer:'owner'}); selectOwner(true)"><span class="opt-icon">🏠</span><div><div class="opt-main">Sí, soy dueño/a de la propiedad</div></div></button>
+          <button class="opt-btn" onclick="fbq('trackCustom','StartQuiz',{answer:'not_owner'}); selectOwner(false)"><span class="opt-icon">🔑</span><div><div class="opt-main">No, soy inquilino/a</div></div></button>
         </div>
       </div>
 

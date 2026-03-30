@@ -874,6 +874,7 @@ function showAlert(msg) {
 
 // --- CALENDAR: 5-day min offset, all 7 days open, 9AM–8PM ---
 let calYear, calMonth, selectedDate = null, selectedSlot = null;
+let detectedState = '';
 const today = new Date();
 calYear = today.getFullYear();
 calMonth = today.getMonth();
@@ -894,15 +895,15 @@ const SLOTS = [
   '6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM'
 ];
 
-async function fetchAvailability(dateStr, address) {
-  const parts = address.split(',').map(s => s.trim());
-  const state = parts[parts.length - 1].toUpperCase();
+async function fetchAvailability(dateStr) {
+  const state = detectedState || detectState(document.getElementById('address')?.value || '');
+  if(!state) return [];
   try {
     const res = await fetch(`/api/availability?date=${dateStr}&state=${state}`);
     const data = await res.json();
     return data.booked || [];
   } catch(e) {
-    return []; // fail open — show all slots
+    return [];
   }
 }
 
@@ -942,8 +943,7 @@ async function selectDate(ds, el) {
   wrap.style.display = 'block';
   grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;font-size:13px;color:rgba(255,255,255,0.4);padding:14px;">Cargando horarios...</div>';
 
-  const address = document.getElementById('address')?.value || '';
-  const booked = await fetchAvailability(ds, address);
+  const booked = await fetchAvailability(ds);
   await renderSlots(booked);
 }
 
@@ -1192,6 +1192,8 @@ async function initAutocomplete() {
       });
 
       const formatted = `${streetNumber} ${route}, ${city}, ${zip}, ${state}`.trim();
+      // Set detected state globally for calendar availability
+      detectedState = state;
       // Set the hidden input value for form submission
       input.value = formatted;
       input.style.display = 'block';

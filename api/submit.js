@@ -69,7 +69,33 @@ export default async function handler(req, res) {
     const { start, end } = buildSlotISO(date, slot);
 
     // 1 — Create contact
-    const contactRes = await ghlPost('/contacts/', {
+    // Search for existing contact first to handle duplicates
+    async function findOrCreateContact(payload) {
+      // Try to find existing contact by email
+      const searchRes = await fetch(
+        `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${GHL_LOCATION_ID}&email=${encodeURIComponent(payload.email)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28'
+          }
+        }
+      );
+      const searchData = await searchRes.json();
+      const existingId = searchData?.contact?.id || searchData?.id;
+
+      if (existingId) {
+        console.log('Existing contact found:', existingId);
+        return existingId;
+      }
+
+      // Create new contact
+      const createRes = await ghlPost('/contacts/', payload);
+      console.log('Contact create response:', JSON.stringify(createRes));
+      return createRes?.contact?.id || createRes?.id || createRes?.contact?.contactId || null;
+    }
+
+    const contactPayload = {
       locationId:   GHL_LOCATION_ID,
       firstName:    fname,
       lastName:     lname,
@@ -84,10 +110,10 @@ export default async function handler(req, res) {
         { key: 'water_type', field_value: waterType   },
         { key: 'symptoms',   field_value: symptoms    }
       ]
-    });
+    };
 
-    console.log('Contact response:', JSON.stringify(contactRes));
-    const contactId = contactRes?.contact?.id || contactRes?.id;
+    const contactId = await findOrCreateContact(contactPayload);
+    console.log('Contact ID:', contactId);
 
     // 2 — Create appointment in the correct state calendar
     if (contactId && calendarId) {

@@ -365,63 +365,89 @@ nav {
 
 /* STEPS SECTION */
 .steps-section {
-  max-width:700px;
-  margin:48px auto 60px;
-  padding:0 20px;
+  max-width:900px;
+  margin:80px auto 60px;
+  padding:0 24px;
 }
+.steps-trigger {
+  background:none; border:none; cursor:pointer;
+  width:100%; text-align:center; padding:0; margin-bottom:0;
+}
+.steps-trigger:hover .steps-title { opacity:.85; }
 .steps-title {
-  text-align:center;
   font-family:'Poppins',sans-serif;
-  font-weight:700;
-  font-size:clamp(20px,4vw,30px);
-  margin-bottom:8px;
-  color:var(--white);
+  font-weight:800;
+  font-size:clamp(20px,3vw,32px);
+  color:#ffffff;
+  margin-bottom:12px;
+  text-align:center;
+  line-height:1.1;
 }
 .steps-subtitle {
   text-align:center;
-  font-size:14px;
+  font-size:15px;
   font-family:'Poppins',sans-serif;
-  color:rgba(240,244,248,0.4);
-  margin-bottom:36px;
+  color:rgba(240,244,248,0.45);
+  margin-bottom:0;
 }
+.steps-arrow {
+  display:inline-block;
+  transition:transform .3s;
+  font-size:28px;
+  color:rgba(255,255,255,0.35);
+  margin-left:8px;
+  vertical-align:middle;
+}
+.steps-section.open .steps-arrow { transform:rotate(90deg); color:var(--water); }
+.steps-body {
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .5s ease;
+}
+.steps-section.open .steps-body { max-height:800px; }
+
+/* STEPS GRID */
 .steps-grid {
   display:grid;
   grid-template-columns:repeat(2,1fr);
-  gap:14px;
+  gap:16px;
+  margin-top:24px;
 }
 .step-card {
-  background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.07);
-  border-radius:14px;
-  padding:22px 18px;
+  background:#0D1E38;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:20px;
+  padding:28px 24px;
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:14px;
 }
 .step-num {
-  width:36px; height:36px;
+  width:48px; height:48px;
   border-radius:50%;
-  background:rgba(91,184,245,0.1);
-  border:1px solid rgba(91,184,245,0.2);
+  background:rgba(91,184,245,0.15);
   color:var(--water);
   font-weight:700;
-  font-size:14px;
+  font-size:18px;
   font-family:'Poppins',sans-serif;
   display:flex; align-items:center; justify-content:center;
   flex-shrink:0;
 }
 .step-card h3 {
-  font-weight:600;
-  font-size:14px;
+  font-weight:700;
+  font-size:18px;
   font-family:'Poppins',sans-serif;
   color:var(--white);
+  margin:0;
 }
 .step-card p {
-  font-size:13px;
+  font-size:14px;
   font-family:'Poppins',sans-serif;
-  color:rgba(240,244,248,0.5);
-  line-height:1.6;
+  color:rgba(240,244,248,0.45);
+  line-height:1.7;
+  margin:0;
 }
+@media(max-width:640px) { .steps-grid { grid-template-columns:1fr; } }
 
 /* FOOTER */
 footer {
@@ -620,30 +646,34 @@ footer p { font-size:11px; font-family:'Poppins',sans-serif; color:rgba(255,255,
   </div><!-- /quiz-glow -->
 </div><!-- /quiz-section -->
 
-<!-- 4 STEPS -->
+<!-- STEPS SECTION -->
 <div class="steps-section">
-  <h2 class="steps-title">¿En qué consiste la inspección?</h2>
-  <p class="steps-subtitle">100% gratis · Sin obligación · 45–60 minutos</p>
-  <div class="steps-grid">
-    <div class="step-card">
-      <div class="step-num">1</div>
-      <h3>Agendas online</h3>
-      <p>Llena el formulario y elige el horario que te funcione. Un especialista confirmará tu cita en 24 horas.</p>
-    </div>
-    <div class="step-card">
-      <div class="step-num">2</div>
-      <h3>Llegamos a tu hogar</h3>
-      <p>Un especialista certificado visita tu casa puntual y profesional. No necesitas preparar nada.</p>
-    </div>
-    <div class="step-card">
-      <div class="step-num">3</div>
-      <h3>Análisis completo</h3>
-      <p>45–60 min de pruebas: pH, dureza, cloro, sedimentos y más. Pregunta todo lo que quieras.</p>
-    </div>
-    <div class="step-card">
-      <div class="step-num">4</div>
-      <h3>Resultados claros</h3>
-      <p>Recomendaciones honestas — algunas gratis, otras opcionales. Sin presión, sin obligación.</p>
+  <button class="steps-trigger" onclick="toggleSteps(this)">
+    <h2 class="steps-title">¿En qué consiste la inspección? <span class="steps-arrow">›</span></h2>
+    <p class="steps-subtitle">100% gratis · Sin obligación · 45–60 minutos</p>
+  </button>
+  <div class="steps-body">
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <h3>Agendas online</h3>
+        <p>Llena el formulario y elige el horario que te funcione. Un especialista confirmará tu cita en 24 horas.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <h3>Llegamos a tu hogar</h3>
+        <p>Un especialista certificado visita tu casa puntual y profesional. No necesitas preparar nada.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <h3>Análisis completo</h3>
+        <p>45–60 min de pruebas: pH, dureza, cloro, sedimentos y más. Pregunta todo lo que quieras.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <h3>Resultados claros</h3>
+        <p>Recomendaciones honestas — algunas gratis, otras opcionales. Sin presión, sin obligación.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -974,6 +1004,17 @@ function showInlineThanks(name, date, slot) {
       <p style="font-size:13px;color:rgba(255,255,255,0.5);">Recibirás un correo con todos los detalles en los próximos minutos.</p>
     </div>`;
   }
+}
+
+function toggleAcc(btn) {
+  const item = btn.parentElement;
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.acc-item').forEach(i => i.classList.remove('open'));
+  if(!isOpen) item.classList.add('open');
+}
+
+function toggleSteps(btn) {
+  btn.closest('.steps-section').classList.toggle('open');
 }
 
 renderCal();

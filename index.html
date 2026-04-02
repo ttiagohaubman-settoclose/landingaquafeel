@@ -81,8 +81,8 @@ nav {
 .urgency-track {
   display:flex;
   white-space:nowrap;
-  animation:ticker 22s linear infinite;
-  padding:10px 0 10px 220px;
+  animation:ticker 12s linear infinite;
+  padding:10px 0 10px 160px;
 }
 .urgency-track span {
   font-family:'Poppins',sans-serif;
@@ -464,13 +464,29 @@ footer p { font-size:11px; font-family:'Poppins',sans-serif; color:rgba(255,255,
 
 /* MOBILE */
 @media(max-width:640px) {
-  .hero { padding:50px 16px 32px; }
-  .hero h1 { font-size:clamp(20px,6vw,28px); white-space:normal; }
+  /* Hero */
+  .hero { padding:40px 16px 20px; }
+  .hero h1 { 
+    font-size:5.5vw; 
+    white-space:normal;
+    letter-spacing:-0.3px;
+  }
+  .hero-sub { font-size:13px; }
+
+  /* Urgency ticker — smaller on mobile */
+  .urgency-bar { }
+  .urgency-label { font-size:8px; padding:0 8px; letter-spacing:0.5px; }
+  .urgency-track { padding:7px 0 7px 90px; }
+  .urgency-track span { font-size:10px; padding-right:40px; }
+
+  /* Quiz */
+  .quiz-section { padding:0 12px; margin-top:12px; }
   .booking-form { padding:20px 16px; }
   .fg-row { grid-template-columns:1fr; }
-  .steps-grid { grid-template-columns:1fr; }
   .slots-grid { grid-template-columns:repeat(2,1fr); }
-  .quiz-section { padding:0 12px; }
+
+  /* Steps */
+  .steps-grid { grid-template-columns:1fr; }
   .urgency-label { font-size:9px; padding:0 10px; }
 }
 </style>

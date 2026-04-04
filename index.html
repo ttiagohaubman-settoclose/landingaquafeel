@@ -541,11 +541,11 @@ footer p { font-size:11px; font-family:'Poppins',sans-serif; color:rgba(255,255,
         <div class="step-label">Paso 1 de 4</div>
         <div class="step-q">¿Eres dueño o dueña de la propiedad donde vives?</div>
         <div class="opts">
-          <button class="opt-btn" onclick="fbq('trackCustom','StartQuiz_Owner'); selectOwner(true)">
+          <button class="opt-btn" onclick="if(!sessionStorage.getItem('sq')){fbq('trackCustom','StartQuiz_Owner');sessionStorage.setItem('sq','1');} selectOwner(true)">
             <span class="opt-icon">🏠</span>
             <div><div class="opt-main">Sí, soy dueño/a de la propiedad</div></div>
           </button>
-          <button class="opt-btn" onclick="fbq('trackCustom','StartQuiz_Renter'); selectOwner(false)">
+          <button class="opt-btn" onclick="if(!sessionStorage.getItem('sq')){fbq('trackCustom','StartQuiz_Renter');sessionStorage.setItem('sq','1');} selectOwner(false)">
             <span class="opt-icon">🔑</span>
             <div><div class="opt-main">No, soy inquilino/a</div></div>
           </button>
